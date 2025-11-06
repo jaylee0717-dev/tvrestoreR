@@ -55,3 +55,45 @@ generate_example_image <- function(size = c(64, 64), pattern = "gradient",
   # Return Original image, Corrupted image, and mask pixel
   list(orig = orig, corrupted = corrupted, mask = mask)
 }
+
+
+
+plot_images <- function(imgs, titles = NULL, cols = NULL,
+                        palette = grey(seq(0,1,length.out = 256)),
+                        useRaster = TRUE, axes = FALSE, main = NULL) {
+  n <- length(imgs)
+  if (n < 1) stop("No images to plot.")
+  if (!is.null(titles) && length(titles) != n) {
+    stop("Length of titles must match number of images.")
+  }
+  # decide layout
+  if (is.null(cols)) {
+    cols <- floor(sqrt(n))
+    if (cols < 1) cols <- 1
+  }
+  rows <- ceiling(n / cols)
+  oldpar <- par(mfrow = c(rows, cols), mar = c(0,0,2,0))
+  on.exit(par(oldpar))
+
+  if (!is.null(main)) {
+    # set outer title
+    par(oma = c(0,0,2,0))
+    title(main = main, outer = TRUE, line = 0)
+  }
+
+  for (i in seq_len(n)) {
+    img <- imgs[[i]]
+    if (!is.matrix(img)) {
+      stop("Each image must be a matrix for grayscale plotting.")
+    }
+    # Flip & transpose for correct orientation
+    image(t(img[nrow(img):1, ]),
+          col = palette,
+          useRaster = useRaster,
+          axes = axes)
+    if (!is.null(titles)) {
+      mtext(titles[i], side = 3, line = 0.5, cex = 1)
+    }
+  }
+  invisible(NULL)
+}
