@@ -19,7 +19,7 @@ generate_example_image <- function(size = c(64, 64), pattern = "gradient",
     orig <- matrix(rep(rep(c(0,1), length.out = nc), length.out = nr),
                    nrow = nr, byrow = TRUE)
   # Add noise
-
+  corrupted <- orig + noise_sigma * matrix(rnorm(nr * nc), nrow = nr, ncol = nc)
   # Generate Mask
 
   # Return Original image, Corrupted image, and mask pixels
