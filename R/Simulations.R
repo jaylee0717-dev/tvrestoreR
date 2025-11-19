@@ -37,8 +37,8 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
     original <- outer(seq(0,1,length.out=nr), seq(0,1,length.out=nc), FUN = function(x, y) x)
   }
   else if (pattern == "checkerboard") {
-    original <- matrix(rep(rep(c(0,1), length.out = nc), length.out = nr),
-                   nrow = nr, byrow = TRUE)
+    original <- outer(seq_len(nr), seq_len(nc),
+                  FUN = function(i, j) (i + j) %% 2)
   }
   else {
     stop("Unknown pattern type: ", pattern)

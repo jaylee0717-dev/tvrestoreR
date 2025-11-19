@@ -17,3 +17,8 @@ plot_images(list(im2$original, im2$corrupted), titles=c("Original", "Corrupt"))
 im3 <- generate_example_images(pattern= "disk", mask_type = "random_blocks", missing_fraction = 0.2, noise_sigma = 0.2)
 plot_images(list(im3$original, im3$corrupted), titles=c("Original", "Corrupt"))
 
+# Im4: checkerboard with random pixels
+im4 <- generate_example_images(pattern= "checkerboard", mask_type = "random_pixels", missing_fraction = 0.2, noise_sigma = 0.2)
+
+plot_images(list(im4$original, im4$corrupted), titles=c("Original", "Corrupt"))
+
