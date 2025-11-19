@@ -1,4 +1,4 @@
-#' generate_example_image
+#' generate_example_images
 #'
 #' Generates an image with optional noise and missing‐pixel mask
 #'
@@ -10,16 +10,16 @@
 #' @param seed seed Integer (optional). Random seed for reproducibility.
 #'
 #' @returns A list with components:
-#’ \item{orig}{The original (clean) image matrix of size \code{size}.}
+#’ \item{original}{The original (clean) image matrix of size \code{size}.}
 #’ \item{corrupted}{The image after adding noise and applying the mask (with NAs for missing pixels).}
 #’ \item{mask}{Logical matrix of same size: \code{TRUE} means pixel is observed, \code{FALSE} means masked (missing).}
 #'
 #' @export
 #'
 #' @examples
-#' ex <- generate_example_image(missing_fraction = 0.4, noise_sigma = 0.2)
+#' ex <- generate_example_images(missing_fraction = 0.4, noise_sigma = 0.2)
 #' image(ex$corrupted, main = "Example corrupted image", col=grey(seq(0,1,length.out = 256)))
-generate_example_image <- function(size = c(64, 64), pattern = "gradient",
+generate_example_images <- function(size = c(64, 64), pattern = "gradient",
                                    noise_sigma = 0.0, missing_fraction = 0.0,
                                    mask_type = "disk", seed = NULL){
   # Set seed
@@ -31,13 +31,13 @@ generate_example_image <- function(size = c(64, 64), pattern = "gradient",
     x <- seq(-1,1,length.out=nc)
     y <- seq(-1,1,length.out=nr)
     grid <- outer(y, x, FUN = function(yy, xx) sqrt(xx^2 + yy^2))
-    orig <- ifelse(grid <= 0.8, 1, 0)
+    original <- ifelse(grid <= 0.8, 1, 0)
   }
   else if (pattern == "gradient"){
-    orig <- outer(seq(0,1,length.out=nr), seq(0,1,length.out=nc), FUN = function(x, y) x)
+    original <- outer(seq(0,1,length.out=nr), seq(0,1,length.out=nc), FUN = function(x, y) x)
   }
   else if (pattern == "checkerboard") {
-    orig <- matrix(rep(rep(c(0,1), length.out = nc), length.out = nr),
+    original <- matrix(rep(rep(c(0,1), length.out = nc), length.out = nr),
                    nrow = nr, byrow = TRUE)
   }
   else {
@@ -45,7 +45,8 @@ generate_example_image <- function(size = c(64, 64), pattern = "gradient",
   }
 
   # Add noise
-  corrupted <- orig + noise_sigma * matrix(rnorm(nr * nc), nrow = nr, ncol = nc)
+  corrupted <- original + matrix(rnorm(nr * nc, sd = noise_sigma),
+                             nrow = nr, ncol = nc)
   # Generate Mask
   mask <- matrix(TRUE, nrow = nr, ncol = nc)
   if (missing_fraction > 0) {
@@ -74,8 +75,9 @@ generate_example_image <- function(size = c(64, 64), pattern = "gradient",
   corrupted[!mask] <- NA
 
   # Return Original image, Corrupted image, and mask pixel
-  list(orig = orig, corrupted = corrupted, mask = mask)
+  list(original = original, corrupted = corrupted, mask = mask)
 }
+
 
 
 
