@@ -95,7 +95,10 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
 #'
 #' @export
 #'
-#' @examples plot_images()
+#' @examples
+#' a <- matrix(rnorm(100), nrow=10)
+#' b <- matrix(runif(160), nrow=10)
+#' plot_images(list(a, b), titles=c("Norm", "Unif"))
 plot_images <- function(imgs, titles = NULL, cols = NULL,
                         palette = grey(seq(0,1,length.out = 256)),
                         useRaster = TRUE, axes = FALSE, main = NULL) {

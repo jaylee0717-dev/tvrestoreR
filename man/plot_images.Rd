@@ -35,5 +35,7 @@ plot_images
 Plot one or more grayscale images in a grid with titles
 }
 \examples{
-plot_images()
+a <- matrix(rnorm(100), nrow=10)
+b <- matrix(runif(160), nrow=10)
+plot_images(list(a, b), titles=c("Norm", "Unif"))
 }
