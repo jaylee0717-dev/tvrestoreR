@@ -12,6 +12,8 @@ tv_restore <- function(img, mask = NULL, lambda,
   }
 }
 
+
+
 tv_restore_primal_dual <- function(img = img, mask = mask, lambda = lambda,
                        tau = tau, sigma = sigma, theta = theta){
   # Input Checks
@@ -63,4 +65,40 @@ tv_restore_primal_dual <- function(img = img, mask = mask, lambda = lambda,
   }
 
   #### Loop
+  for (k in seq_len(max_iter)) {
+    u_old <- u
+
+    # dual
+    g <- grad(u_bar)
+    px_t <- p_x + sigma * g$dx
+    py_t <- p_y + sigma * g$dy
+    p_proj <- prox_Fs(px_t, py_t)
+    p_x <- p_proj$px; p_y <- p_proj$py
+
+    # primal
+    div_p <- div(p_x, p_y)
+    u_t <- u - tau * div_p
+    u <- prox_G(u_t)
+
+    # extrapolate
+    u_bar <- u + theta * (u - u_old)
+
+    # stopping
+    rel <- sqrt(sum((u - u_old)^2)) / (sqrt(sum(u_old^2)) + 1e-12)
+    if (verbose && (k %% 50 == 0)) {
+      message("iter ", k, ": rel = ", signif(rel, 3))
+    }
+    if (rel < tol) {
+      if (verbose) message("Converged at iteration ", k)
+      break
+    }
+  }
+
+  g_f <- grad(u)
+  tv_val <- sum(sqrt(g_f$dx^2 + g_f$dy^2))
+  fidelity <- 0.5 * lambda * sum((u[mask] - f[mask])^2)
+  obj <- fidelity + tv_val
+
+  # Return List of restored, iterations, and objective
+  list(restored = u, iterations = k, objective = obj)
 }
