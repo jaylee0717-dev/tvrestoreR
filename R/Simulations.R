@@ -47,6 +47,8 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
   # Add noise
   corrupted <- original + matrix(rnorm(nr * nc, sd = noise_sigma),
                              nrow = nr, ncol = nc)
+  corrupted <- pmin(pmax(corrupted, 0), 1)
+
   # Generate Mask
   mask <- matrix(TRUE, nrow = nr, ncol = nc)
   if (missing_fraction > 0) {
@@ -101,40 +103,66 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
 #' plot_images(list(a, b), titles=c("Norm", "Unif"))
 plot_images <- function(imgs, titles = NULL, cols = NULL,
                         palette = grey(seq(0,1,length.out = 256)),
-                        useRaster = TRUE, axes = FALSE, main = NULL) {
+                        na_color = "red", useRaster = TRUE, axes = FALSE, main = NULL) {
+  ### Check Input
   n <- length(imgs)
   if (n < 1) stop("No images to plot.")
   if (!is.null(titles) && length(titles) != n) {
     stop("Length of titles must match number of images.")
   }
-  # decide layout
   if (is.null(cols)) {
-    cols <- floor(sqrt(n))
-    if (cols < 1) cols <- 1
+    cols <- floor(sqrt(n)); if (cols < 1) cols <- 1
   }
   rows <- ceiling(n / cols)
   oldpar <- par(mfrow = c(rows, cols), mar = c(0,0,2,0))
   on.exit(par(oldpar))
 
   if (!is.null(main)) {
-    # set outer title
     par(oma = c(0,0,2,0))
     title(main = main, outer = TRUE, line = 0)
   }
 
+  ### Loop for every images in imgs
   for (i in seq_len(n)) {
     img <- imgs[[i]]
-    if (!is.matrix(img)) {
-      stop("Each image must be a matrix for grayscale plotting.")
-    }
-    # Flip & transpose for correct orientation
-    image(t(img[nrow(img):1, ]),
-          col = palette,
-          useRaster = useRaster,
-          axes = axes)
+    if (!is.matrix(img)) stop("Each image must be a matrix for grayscale plotting.")
+
+    # Determine finite value range
+    finite_vals <- img[!is.na(img)]
+    zlim <- range(finite_vals, na.rm = TRUE)
+    zrange <- zlim[2] - zlim[1]
+
+    # Create “special” value for NA
+    N <- length(palette)
+    special_val <- zlim[2] + zrange / N
+
+    # Prepare modified image
+    img2 <- img
+    img2[is.na(img2)] <- special_val
+
+    # Extended palette
+    new_palette <- c(palette, na_color)
+
+    # Create breaks of length = length(new_palette) + 1
+    breaks <- c(
+      seq(zlim[1], zlim[2], length.out = N + 1),
+      special_val + zrange / N * 0.5
+    )
+
+    image(
+      t(img2[nrow(img2):1, ]),
+      col = new_palette,
+      breaks = breaks,
+      useRaster = useRaster,
+      axes = axes
+    )
+
     if (!is.null(titles)) {
       mtext(titles[i], side = 3, line = 0.5, cex = 1)
     }
   }
+
   invisible(NULL)
 }
+
+

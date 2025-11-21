@@ -10,6 +10,7 @@ plot_images(
   titles = NULL,
   cols = NULL,
   palette = grey(seq(0, 1, length.out = 256)),
+  na_color = "red",
   useRaster = TRUE,
   axes = FALSE,
   main = NULL
