@@ -1,24 +1,64 @@
+#' Title
+#'
+#' @param img
+#' @param mask
+#' @param lambda
+#' @param method
+#' @param tau
+#' @param sigma
+#' @param theta
+#'
+#' @returns
+#' @export
+#'
+#' @examples
 tv_restore <- function(img, mask = NULL, lambda,
-                       method = c("primal_dual"),
+                       method = "primal_dual",
                        # primal-dual params
-                       tau, sigma, theta){
+                       tau, sigma, theta,
+                       max_iter = 300, tol = 1e-4, verbose = FALSE){
+  ### Input Checks
+  if (!is.matrix(img)) stop("`img` must be a 2D numeric matrix.")
+  nr <- nrow(img); nc <- ncol(img)
+  if (is.null(mask)) {
+    mask <- !is.na(img)
+  }
+  if (!all(dim(mask) == c(nr, nc))) {
+    stop("mask dimensions must match img.")
+  }
+  ###################MORE TO ADD LATER ###################
+
   # Match method string
   method <- match.arg(method, choices = c("primal_dual", "split_bregman"))
 
   # Call corresponding restore function
   if (method == "primal_dual") {
-    return(.tv_restore_primal_dual(img = img, mask = mask, lambda = lambda,
-                                   tau = tau, sigma = sigma, theta = theta))
+    return(tv_restore_primal_dual(img = img, mask = mask, lambda = lambda,
+                                   tau = tau, sigma = sigma, theta = theta,
+                                  max_iter = max_iter, tol = tol, verbose = verbose))
   }
 }
 
 
 
-tv_restore_primal_dual <- function(img = img, mask = mask, lambda = lambda,
-                       tau = tau, sigma = sigma, theta = theta){
-  # Input Checks
+#' Title
+#'
+#' @param img
+#' @param mask
+#' @param lambda
+#' @param tau
+#' @param sigma
+#' @param theta
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+tv_restore_primal_dual <- function(img, mask, lambda, tau, sigma, theta, max_iter, tol, verbose){
+  # Assume all inputs are fine at this point
 
   #### Initialize
+  nr <- nrow(img); nc <- ncol(img)
   # Replace NA in img with 0 (doesn't matter at masked locations)
   f <- img
   f[!mask] <- 0
@@ -31,16 +71,33 @@ tv_restore_primal_dual <- function(img = img, mask = mask, lambda = lambda,
 
   # Helper functions: gradient and divergence
   grad <- function(u) {
+    nr <- nrow(u); nc <- ncol(u)
     # forward finite differences
-    dx <- rbind(diff(u, 1, 1), rep(0, nc))
-    dy <- cbind(diff(u, 1, 2), rep(0, nr))
+    dx <- matrix(0, nr, nc)
+    dy <- matrix(0, nr, nc)
+
+    # difference in row direction (vertical): u[i+1, j] - u[i, j]
+    dx[1:(nr - 1), ] <- u[2:nr, ] - u[1:(nr - 1), ]
+
+    # difference in column direction (horizontal): u[i, j+1] - u[i, j]
+    dy[, 1:(nc - 1)] <- u[, 2:nc] - u[, 1:(nc - 1)]
+
     list(dx = dx, dy = dy)
   }
+
   div <- function(px, py) {
-    # divergence is negative adjoint of gradient
-    # backward differences
-    ddx <- rbind(px[1, ], px[2:nr, ] - px[1:(nr-1), ])  # px_i,j - px_{i-1,j}
-    ddy <- cbind(py[,1], py[,2:nc] - py[,1:(nc-1)])     # py_i,j - py_{i,j-1}
+    nr <- nrow(px); nc <- ncol(px)
+    # divergence: backward difference
+    ddx <- matrix(0, nr, nc)
+    ddy <- matrix(0, nr, nc)
+
+    # px difference: p_x[i,j] - p_x[i-1,j] (for i > 1)
+    ddx[2:nr, ] <- px[2:nr, ] - px[1:(nr - 1), ]
+    # for first row, ddx stays zero (or boundary condition)
+
+    # py difference: p_y[i,j] - p_y[i,j-1] (for j > 1)
+    ddy[, 2:nc] <- py[, 2:nc] - py[, 1:(nc - 1)]
+
     ddx + ddy
   }
 
