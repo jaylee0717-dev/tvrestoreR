@@ -1,9 +1,12 @@
 Package: tvrestoreR
-Title: What the Package Does (One Line, Title Case)
+Title: Unified, Flexible Package That Handles Both Denoising and Inpainting of Grayscale Images Under TV Regularization.
 Version: 0.0.0.9000
 Authors@R: 
     person("Jay", "Lee", , "jaylee0717@tamu.edu", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: Provides tools for restoring corrupted images using total variation regularization. The package supports both inpainting 
+(filling missing or masked pixels) and denoising, via a unified variational formulation solved by the primal-dual (Chambolle-Pock) algorithm. 
+Users can supply an image and a mask of observed pixels, choose a regularization weight (lambda), and obtain a restored image that balances data 
+fidelity and smoothness. This is particularly useful for image reconstruction tasks where preserving edges while smoothing noise or filling gaps is critical.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

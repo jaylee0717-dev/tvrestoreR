@@ -2,3 +2,5 @@
 
 export(generate_example_images)
 export(plot_images)
+export(tv_restore)
+export(tv_restore_primal_dual)
