@@ -58,7 +58,7 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
       mask[idx] <- FALSE
     }
     else if (mask_type == "random_blocks") {
-      # create a random rectangular block
+      # create random rectangular blocks
       block_rows <- sample(1:nr, size = round(sqrt(n_missing)), replace = FALSE)
       block_cols <- sample(1:nc, size = round(sqrt(n_missing)), replace = FALSE)
       mask[block_rows, block_cols] <- FALSE
@@ -127,26 +127,20 @@ plot_images <- function(imgs, titles = NULL, cols = NULL,
     img <- imgs[[i]]
     if (!is.matrix(img)) stop("Each image must be a matrix for grayscale plotting.")
 
-    # Determine finite value range
-    finite_vals <- img[!is.na(img)]
-    zlim <- range(finite_vals, na.rm = TRUE)
-    zrange <- zlim[2] - zlim[1]
-
     # Create “special” value for NA
-    N <- length(palette)
-    special_val <- zlim[2] + zrange / N
+    special_val <- 1.1
 
     # Prepare modified image
     img2 <- img
-    img2[is.na(img2)] <- special_val
+    img2[is.na(img2)] <- 1.1
 
     # Extended palette
     new_palette <- c(palette, na_color)
 
     # Create breaks of length = length(new_palette) + 1
     breaks <- c(
-      seq(zlim[1], zlim[2], length.out = N + 1),
-      special_val + zrange / N * 0.5
+      seq(0,1, length.out = length(new_palette)),
+      1.1
     )
 
     image(
@@ -154,7 +148,7 @@ plot_images <- function(imgs, titles = NULL, cols = NULL,
       col = new_palette,
       breaks = breaks,
       useRaster = useRaster,
-      axes = axes
+      axes = axes,
     )
 
     if (!is.null(titles)) {
