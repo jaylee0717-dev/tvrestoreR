@@ -9,6 +9,8 @@ tv_restore(
   mask = NULL,
   lambda,
   method = "primal_dual",
+  task = "ROF_inpainting",
+  u0 = NULL,
   tau,
   sigma,
   theta,

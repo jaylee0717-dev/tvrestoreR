@@ -1,5 +1,3 @@
-library(Matrix)
-
 prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoising", "ROF_inpainting")) {
   task_type <- match.arg(task_type)
   if (task_type == "inpainting") {
@@ -70,18 +68,30 @@ compute_F <- function(n) {
 # task: "inpainting" or "denoising" or "ROF_inpainting"
 # lmda: regularization parameter (lambda)
 # u0: initial u (numeric vector length n^2)
-# stopping_threshold, maximum_iterations: numeric / integer
+# tol, max_iter: numeric / integer
 # update_interval: integer for console prints
-find_saddle_point <- function(im_vec, mask_vec,
-                              task = c("inpainting", "denoising", "ROF_inpainting"),
-                              lmda = 1.0,
-                              u0,
-                              stopping_threshold = 1e-6,
-                              maximum_iterations = 2000,
-                              update_interval = 50) {
-  vecnorm2 <- function(x) sqrt(sum((x)^2))
 
-  task <- match.arg(task)
+
+#' Title
+#'
+#' @param im_vec
+#' @param mask_vec
+#' @param task
+#' @param lmda
+#' @param u0
+#' @param tol
+#' @param max_iter
+#' @param verbose
+#'
+#' @returns
+#' @export
+#' @import Matrix
+#'
+#' @examples
+find_saddle_point <- function(im_vec, mask_vec, task,
+                              lmda, u0, tol, max_iter, verbose) {
+  vecnorm2 <- function(x) sqrt(sum((x)^2))
+  # Input Check
   n2 <- length(im_vec)
   n <- as.integer(sqrt(n2))
   if (n * n != n2) stop("im_vec length must be a perfect square")
@@ -91,10 +101,8 @@ find_saddle_point <- function(im_vec, mask_vec,
   # copies
   im_copy <- as.numeric(im_vec)
   D <- compute_D(n)           # (2*n^2) x (n^2) sparse
-  F <- compute_F(n)           # (2*n^2) x (2*n^2) identity for FD
+  Fmat <- compute_F(n)           # (2*n^2) x (2*n^2) identity for FD
 
-  # L = 1 (assumption)
-  L <- 1L
 
   # initialize variables
   u <- as.numeric(u0)
@@ -103,8 +111,8 @@ find_saddle_point <- function(im_vec, mask_vec,
 
   # constant stepsizes (using matrix absolute sums)
   # Build C = [D, F^T] horizontally
-  # Note: F is identity so F^T is identity; but keep general form
-  C <- cbind(D, t(F))
+  # Note: F is identity so F^T is identity
+  C <- cbind(D, t(Fmat))
   # row sums of abs(C)
   row_sum_abs_C <- rowSums(abs(C))
   sigma_p <- 1 / max(row_sum_abs_C)
@@ -112,7 +120,7 @@ find_saddle_point <- function(im_vec, mask_vec,
   col_sum_abs_D <- colSums(abs(D))
   tau_u <- 1 / max(col_sum_abs_D)
   # tau for q: 1 / max column sums of abs(F^T)  (F^T columns)
-  col_sum_abs_Ft <- colSums(abs(t(F)))
+  col_sum_abs_Ft <- colSums(abs(t(Fmat)))
   tau_q <- 1 / max(col_sum_abs_Ft)
 
   # main loop
@@ -149,17 +157,20 @@ find_saddle_point <- function(im_vec, mask_vec,
     p <- pnew
 
     # output control
-    if ((count %% update_interval) == 0L) {
-      cat("Iteration", count, "\n")
-      cat(sprintf("Relative Norm change on u: %.6e\n", rel_delta_u))
-      cat(sprintf("Relative Norm change on p: %.6e\n", rel_delta_p))
-      cat(rep("-", 30), "\n")
+    if (verbose){
+      if ((count %% 1000) == 0L) {
+        cat("Iteration", count, "\n")
+        cat(sprintf("Relative Norm change on u: %.6e\n", rel_delta_u))
+        cat(sprintf("Relative Norm change on p: %.6e\n", rel_delta_p))
+        cat(rep("-", 30), "\n")
+      }
     }
+
     count <- count + 1L
 
     # stopping criteria
-    if ((count > maximum_iterations) ||
-        (rel_delta_u < stopping_threshold && rel_delta_p < stopping_threshold)) {
+    if ((count > max_iter) ||
+        (rel_delta_u < tol && rel_delta_p < tol)) {
       break
     }
   }
