@@ -14,9 +14,7 @@
 #' @examplesa
 tv_restore <- function(img, mask = NULL, lambda,
                        method = "primal_dual", task = "ROF_inpainting", u0 = NULL,
-                       # primal-dual params
-                       tau, sigma, theta,
-                       max_iter = 300, tol = 1e-4, verbose = FALSE){
+                       max_iter = 10000, tol = 1e-5, verbose = FALSE){
   ### Input Checks
   if (!is.matrix(img)) stop("`img` must be a 2D numeric matrix.")
   nr <- nrow(img); nc <- ncol(img)
@@ -43,11 +41,11 @@ tv_restore <- function(img, mask = NULL, lambda,
 
     # Solve saddle point
     res_vec <- find_saddle_point(im_vec = im_vec, mask_vec = mask_vec,
-                      task = task,
-                      lmda = lambda, u0 = u0, tol = tol, max_iter = max_iter,
-                      verbose = verbose)
-    # Return as matrix
+                      task = task, lmda = lambda, u0 = u0,
+                      tol = tol, max_iter = max_iter, verbose = verbose)
+    # Return as matrix, strictly capped between 0 and 1
     res <- matrix(res_vec, nrow = nr, ncol = nc)   # column-major fill
+    res[res < 0] <- 0; res[res > 1] <- 1;
     return(res)
   }
 }
