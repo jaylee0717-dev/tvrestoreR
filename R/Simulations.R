@@ -28,13 +28,18 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
   nc <- size[2]
   # Generate base image
   if (pattern == "disk"){
-    x <- seq(-1,1,length.out=nc)
-    y <- seq(-1,1,length.out=nr)
+    x <- seq(-1, 1, length.out = nc)
+    y <- seq(-1, 1, length.out = nr)
     grid <- outer(y, x, FUN = function(yy, xx) sqrt(xx^2 + yy^2))
     original <- ifelse(grid <= 0.8, 1, 0)
   }
   else if (pattern == "gradient"){
-    original <- outer(seq(0,1,length.out=nr), seq(0,1,length.out=nc), FUN = function(x, y) x)
+    original <- outer(
+      seq(0, 1, length.out = nr),
+      seq(0, 1, length.out = nc),
+      FUN = function(x, y)
+        x
+    )
   }
   else if (pattern == "checkerboard") {
     original <- outer(seq_len(nr), seq_len(nc),
