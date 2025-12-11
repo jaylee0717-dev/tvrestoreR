@@ -8,7 +8,7 @@ prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoisi
   } else if (task_type == "ROF_inpainting") {
     if (is.null(tau)) stop("tau must be provided for ROF_inpainting")
     uhat <- (ubar + tau * g) / (1 + tau)
-    return(g * mask + uhat * (1 - mask))
+    return(uhat * mask + ubar * (1 - mask))
   } else {
     stop("Need Valid Imaging Task Type: Either inpainting or denoising.")
   }
@@ -16,30 +16,39 @@ prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoisi
 
 shrink <- function(q, tau) {
   if (!is.numeric(q)) stop("q must be numeric")
-  if (length(q) %% 2 != 0) stop("length(q) must be even (2 * n^2)")
-  n2 <- length(q) / 2
-  # split into two components
-  qx <- q[seq(1, length(q), by = 2)]
-  qy <- q[seq(2, length(q), by = 2)]
-  # compute two-norm per pixel
+  len_q <- length(q)
+  if (len_q %% 2 != 0) stop("length(q) must be even (2 * n^2)")
+
+  # Define split point for Stacked Layout
+  n_pixels <- len_q / 2
+
+  # Slice first half (x) and second half (y)
+  qx <- q[1:n_pixels]
+  qy <- q[(n_pixels + 1):len_q]
+
+  # Compute two-norm per pixel
   two_norms <- sqrt(qx^2 + qy^2)
-  # tau handling
+
+  # Tau handling (scalar vs vector)
   if (length(tau) == 1) {
-    tau_vec <- rep(tau, n2)
-  } else if (length(tau) == n2) {
-    tau_vec <- tau
+    tau_eff <- tau
+  } else if (length(tau) == n_pixels) {
+    tau_eff <- tau
   } else {
     stop("tau must be scalar or length n^2")
   }
-  denom <- pmax(two_norms / tau_vec, 1)
+
+  # Scaling factor
+  # Equivalent to: max(two_norms/tau, 1)
+  denom <- pmax(two_norms / tau_eff, 1)
   scaling <- 1 - 1 / denom
+
+  # Apply scaling
   qx_shr <- qx * scaling
   qy_shr <- qy * scaling
-  # interleave back to [qx1, qy1, qx2, qy2, ...] to match input ordering
-  out <- numeric(2 * n2)
-  out[seq(1, length(out), by = 2)] <- qx_shr
-  out[seq(2, length(out), by = 2)] <- qy_shr
-  return(out)
+
+  # Concatenate back to Stacked Layout [qx_shr; qy_shr]
+  return(c(qx_shr, qy_shr))
 }
 
 compute_D <- function(n) {
@@ -61,17 +70,6 @@ compute_F <- function(n) {
 }
 
 
-# find_saddle_point: R translation of Python algorithm (L=1, FD only)
-# im_vec, mask_vec: numeric vectors of length n^2
-# dctzn_scheme: should be "FD"
-# dctzn_values: ignored (kept for API compatibility)
-# task: "inpainting" or "denoising" or "ROF_inpainting"
-# lmda: regularization parameter (lambda)
-# u0: initial u (numeric vector length n^2)
-# tol, max_iter: numeric / integer
-# update_interval: integer for console prints
-
-
 #' Title
 #'
 #' @param im_vec
@@ -89,92 +87,94 @@ compute_F <- function(n) {
 #'
 #' @examples
 find_saddle_point <- function(im_vec, mask_vec, task,
-                              lmda, u0, tol, max_iter, verbose) {
-  vecnorm2 <- function(x) sqrt(sum((x)^2))
-  # Input Check
+                              lmda, u0, tol, max_iter, verbose = FALSE) {
+
+  # --- Helper for Norm ---
+  vecnorm2 <- function(x) sqrt(sum(x^2))
+
+  # --- Input Checks ---
   n2 <- length(im_vec)
   n <- as.integer(sqrt(n2))
+
   if (n * n != n2) stop("im_vec length must be a perfect square")
   if (length(mask_vec) != n2) stop("mask_vec length mismatch")
   if (length(u0) != n2) stop("u0 length mismatch")
 
-  # copies
+  # --- Setup Matrices ---
   im_copy <- as.numeric(im_vec)
-  D <- compute_D(n)           # (2*n^2) x (n^2) sparse
-  Fmat <- compute_F(n)           # (2*n^2) x (2*n^2) identity for FD
+  D <- compute_D(n) # returns stacked layout [Dx; Dy]
+  Fmat <- compute_F(n)
 
-
-  # initialize variables
+  # --- Initialization ---
   u <- as.numeric(u0)
-  q <- rep(1.0, 2 * n2)       # q length = 2 * n^2, interleaved [qx1,qy1,qx2,qy2,...]
-  p <- rep(1.0, 2 * n2)       # p length = 2 * n^2 (dual for data term)
+  q <- rep(1.0, 2 * n2)
+  p <- rep(1.0, 2 * n2)
 
-  # constant stepsizes (using matrix absolute sums)
-  # Build C = [D, F^T] horizontally
-  # Note: F is identity so F^T is identity
-  C <- cbind(D, t(Fmat))
-  # row sums of abs(C)
-  row_sum_abs_C <- rowSums(abs(C))
-  sigma_p <- 1 / max(row_sum_abs_C)
-  # tau for u: 1 / max column sums of abs(D)
+  # --- Stepsize Calculation ---
+  row_sum_abs_D <- rowSums(abs(D))
+  sigma_p <- 1 / max(row_sum_abs_D + 1)
+
   col_sum_abs_D <- colSums(abs(D))
   tau_u <- 1 / max(col_sum_abs_D)
-  # tau for q: 1 / max column sums of abs(F^T)  (F^T columns)
-  col_sum_abs_Ft <- colSums(abs(t(Fmat)))
-  tau_q <- 1 / max(col_sum_abs_Ft)
 
-  # main loop
-  count <- 1L
+  tau_q <- 1.0
+
+  #### --- Main Loop --- ####
+  count <- 0L
   rel_delta_u <- Inf
   rel_delta_p <- Inf
   eps <- 1e-10
 
   while (TRUE) {
-    # primal update (u)
-    # D^T %*% p : yields length n^2 vector
-    Dt_p <- as.numeric(t(D) %*% p)
-    unew <- prox(u - tau_u * Dt_p, im_copy, tau = tau_u, mask = mask_vec, task_type = task)
+    # Primal Update (u)
+    Dt_p <- as.numeric(crossprod(D, p))
+
+    unew <- prox(u - tau_u * Dt_p,
+                 im_copy,
+                 tau = tau_u,
+                 mask = mask_vec,
+                 task_type = task)
+
     ubar <- 2 * unew - u
 
-    # dual q update (shrink) : qnew = shrink(q + tau_q * F %*% p, tau_q * lmda)
-    Fp <- as.numeric(F %*% p)
+    # q Update
+    # Fp <- as.numeric(Fmat %*% p)
+    Fp <- p
+
     q_in <- q + tau_q * Fp
     qnew <- shrink(q_in, tau = tau_q * lmda)
     qbar <- 2 * qnew - q
 
-    # dual p update
+    # p Update
     D_ubar <- as.numeric(D %*% ubar)
-    Ft_qbar <- as.numeric(t(F) %*% qbar)
+    # t(F) %*% qbar. Since F is identity, this is just qbar.
+    # Ft_qbar <- as.numeric(crossprod(Fmat, qbar))
+    Ft_qbar <- qbar
+
     pnew <- p + sigma_p * (D_ubar - Ft_qbar)
 
-    # relative changes (2-norm)
+    ## Convergence Checks
+    if (count > max_iter) break
+
     rel_delta_u <- vecnorm2(unew - u) / (vecnorm2(u) + eps)
     rel_delta_p <- vecnorm2(pnew - p) / (vecnorm2(p) + eps)
+    if (rel_delta_u < tol && rel_delta_p < tol) break
 
-    # commit updates
+    # Commit Updates
     u <- unew
     q <- qnew
     p <- pnew
-
-    # output control
-    if (verbose){
-      if ((count %% 1000) == 0L) {
-        cat("Iteration", count, "\n")
-        cat(sprintf("Relative Norm change on u: %.6e\n", rel_delta_u))
-        cat(sprintf("Relative Norm change on p: %.6e\n", rel_delta_p))
-        cat(rep("-", 30), "\n")
-      }
-    }
-
     count <- count + 1L
 
-    # stopping criteria
-    if ((count > max_iter) ||
-        (rel_delta_u < tol && rel_delta_p < tol)) {
-      break
+    ## Output Control
+    if (verbose) {
+      if ((count %% 1000) == 0L) {
+        cat(sprintf("Iteration %d | dU: %.2e | dP: %.2e\n",
+                    count, rel_delta_u, rel_delta_p))
+      }
     }
   }
 
-  cat("total iteration:", count, "\n")
+  if (verbose) cat("Total iterations:", count, "\n")
   return(u)
 }

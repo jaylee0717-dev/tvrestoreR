@@ -4,7 +4,16 @@
 \alias{find_saddle_point}
 \title{Title}
 \usage{
-find_saddle_point(im_vec, mask_vec, task, lmda, u0, tol, max_iter, verbose)
+find_saddle_point(
+  im_vec,
+  mask_vec,
+  task,
+  lmda,
+  u0,
+  tol,
+  max_iter,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{verbose}{}
