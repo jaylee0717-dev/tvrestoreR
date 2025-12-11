@@ -70,7 +70,7 @@ compute_F <- function(n) {
 }
 
 
-#' Title
+#' find_primaldual_saddle_point
 #'
 #' @param im_vec
 #' @param mask_vec
@@ -86,7 +86,7 @@ compute_F <- function(n) {
 #' @import Matrix
 #'
 #' @examples
-find_saddle_point <- function(im_vec, mask_vec, task,
+find_primaldual_saddle_point <- function(im_vec, mask_vec, task,
                               lmda, u0, tol, max_iter, verbose = FALSE) {
 
   # --- Helper for Norm ---
