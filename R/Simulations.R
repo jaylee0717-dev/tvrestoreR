@@ -45,6 +45,22 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
     original <- outer(seq_len(nr), seq_len(nc),
                   FUN = function(i, j) (i + j) %% 2)
   }
+  else if (pattern == "wedge") {
+    ii <- matrix(rep(1:nr, each = nc), nrow = nr)
+    jj <- matrix(rep(1:nc, nr), nrow = nr)
+
+    original <- ifelse(ii > jj, 1, 0)
+  }
+  else if (pattern == "wedge60") {
+    angle_deg <- 60
+    theta <- angle_deg * pi/180
+
+    x <- matrix(rep(1:nc, each = nr), nrow = nr) - (nc + 1)/2
+    y <- matrix(rep(1:nr, nc), nrow = nr) - (nr + 1)/2
+
+    line_val <- x * cos(theta) + y * sin(theta)
+    original <- ifelse(line_val >= 0, 1, 0)
+  }
   else {
     stop("Unknown pattern type: ", pattern)
   }
@@ -81,7 +97,7 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
   }
   corrupted[!mask] <- NA
 
-  # Return Original image, Corrupted image, and mask pixel
+  # Return Original image, Corrupted image, and True/False mask
   list(original = original, corrupted = corrupted, mask = mask)
 }
 
@@ -137,7 +153,7 @@ plot_images <- function(imgs, titles = NULL, cols = NULL,
 
     # Prepare modified image
     img2 <- img
-    img2[is.na(img2)] <- 1.1
+    img2[is.na(img2)] <- special_val
 
     # Extended palette
     new_palette <- c(palette, na_color)
