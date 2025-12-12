@@ -5,10 +5,9 @@
 #' @returns
 #'
 #' @importFrom Matrix bandSparse kronecker Diagonal
+#'
+#' @keywords internal
 #' @noRd
-#'
-#'
-#' @examples
 compute_D <- function(n) {
   if (n <= 1) stop("n must be > 1")
   # small n x n forward-difference matrix: diag0=-1, diag+1=1, last +1 entry zero
@@ -26,9 +25,10 @@ compute_D <- function(n) {
 #' @param n
 #'
 #' @returns
-#' @export
 #'
-#' @examples
+#' @keywords internal
+#' @noRd
+
 compute_F <- function(n) {
   size <- 2L * n * n
   return(Diagonal(size))
@@ -40,9 +40,8 @@ compute_F <- function(n) {
 #' @param tau
 #'
 #' @returns
+#' @keywords internal
 #' @noRd
-#'
-#' @examples
 shrink <- function(q, tau) {
   if (!is.numeric(q)) stop("q must be numeric")
   len_q <- length(q)
