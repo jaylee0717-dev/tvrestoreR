@@ -18,7 +18,7 @@ tv_restore <- function(img, mask = NULL, lambda,
                        method = "primal_dual", task = "ROF_inpainting", u0 = NULL,
                        max_iter = 10000, tol = 1e-4, verbose = FALSE, D= NULL,
                        # Task-specific parameters here
-                       ...){
+                       Fmat = NULL, ...){
   ###### IF img IS LIST OF IMAGES
   if (is.list(img)) {
     if (verbose) message(sprintf("Processing list of %d images...", length(img)))
@@ -119,4 +119,98 @@ tv_restore <- function(img, mask = NULL, lambda,
 }
 
 
+#' Tune Regularization Parameter (Lambda)
+#'
+#' Performs a grid search to find the optimal lambda.
+#'
+#' @inheritParams tv_restore
+#' @param lambda_grid Vector of lambda values to test.
+#' @param ground_truth Ground truth matrix for calculating true MSE.
+#' @export
+find_lambda <- function(img, mask = NULL, ground_truth,
+                        lambda_grid = 10^seq(-2, 4, length.out = 12),
+                        task = c("denoising", "inpainting", "ROF_inpainting"),
+                        method = c("primal_dual", "split_bregman"),
+                        verbose = TRUE,
+                        ...) {
 
+  ##  Validation
+  task <- match.arg(task)
+  method <- match.arg(method)
+  if (!is.matrix(img)) stop("'img' must be a matrix.")
+
+  # Auto-detect mask if needed
+  if (task != "denoising" && is.null(mask)) {
+    if (any(is.na(img))) mask <- !is.na(img)
+    else stop("Mask required for inpainting tasks.")
+  }
+  if (is.null(mask)) mask <- matrix(TRUE, nrow=nrow(img), ncol=ncol(img))
+
+
+  # --- 2. Pre-computation ---
+  n <- nrow(img)
+  if (verbose) message("Pre-computing operators...")
+  D_pre <- compute_D(n)
+  F_pre <- if (method == "primal_dual") compute_F(n) else NULL
+
+  # Setup storage
+  errors <- numeric(length(lambda_grid))
+  names(errors) <- lambda_grid
+
+  best_res <- NULL
+  min_err <- Inf
+  best_lam <- NA
+
+  # Setup Error Metric Data
+  observed_idx <- which(mask)
+  obs_data <- img[observed_idx]
+  # Replace NA in input for solver safety
+  img[is.na(img)] <- 0
+
+  # Grid Search Loop
+  if (verbose) message(sprintf("Starting grid search for '%s' using '%s'...", task, method))
+
+  for (i in seq_along(lambda_grid)) {
+    lam <- lambda_grid[i]
+    if (verbose) message(sprintf("  [%d/%d] Testing lambda = %.4f...", i, length(lambda_grid), lam))
+
+    # Run tv_restore
+    res_mat <- tryCatch({
+      tv_restore(img = img, mask = mask, lambda = lam,
+                 task = task, method = method,
+                 verbose = FALSE,
+                 D = D_pre, Fmat = F_pre,
+                 ...)
+    }, error = function(e) {
+      warning(sprintf("Solver failed for lambda=%.4f: %s", lam, e$message))
+      return(NULL)
+    })
+
+    if (is.null(res_mat)) { errors[i] <- Inf; next }
+
+    # Calculate Error
+
+    err <- mean((res_mat - ground_truth)^2, na.rm = TRUE)
+
+
+
+    errors[i] <- err
+    if (verbose) message(sprintf("    Error: %.6e", err))
+    if (err < min_err) {
+      min_err <- err
+      best_lam <- lam
+      best_res <- res_mat
+    }
+    rm(res_mat)
+    gc(verbose = FALSE)
+  }
+
+
+  if (verbose) message(sprintf("Search complete. Best lambda: %.4f", best_lam))
+  return(list(
+    best_lambda = best_lam,
+    restored = best_res,
+    errors = errors,
+    lambda_grid = lambda_grid
+  ))
+}
