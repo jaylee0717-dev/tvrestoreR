@@ -21,6 +21,18 @@ compute_D <- function(n) {
   return(D)
 }
 
+#' Title
+#'
+#' @param n
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+compute_F <- function(n) {
+  size <- 2L * n * n
+  return(Diagonal(size))
+}
 
 #' Title
 #'
