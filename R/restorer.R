@@ -16,10 +16,43 @@
 #' @examples
 tv_restore <- function(img, mask = NULL, lambda,
                        method = "primal_dual", task = "ROF_inpainting", u0 = NULL,
-                       max_iter = 10000, tol = 1e-4, verbose = FALSE,
+                       max_iter = 10000, tol = 1e-4, verbose = FALSE, D= NULL,
                        # Task-specific parameters here
                        ...){
-  ### Input Checks
+  ###### IF img IS LIST OF IMAGES
+  if (is.list(img)) {
+    if (verbose) message(sprintf("Processing list of %d images...", length(img)))
+
+    # Pre-compute D and F once (using size of first frame)
+    n <- nrow(img[[1]])
+    D_pre <- compute_D(n)
+
+    # 1. Capture the dots and remove 'D' if it exists there to prevent collision
+    args <- list(...)
+    args$D <- NULL
+
+    # Apply recursively
+    res <- lapply(img, function(frame) {
+      do.call(tv_restore, c(list(
+        img = frame,
+        mask = mask,
+        lambda = lambda,
+        task = task,
+        method = method,
+        u0 = u0,
+        max_iter = max_iter,
+        tol = tol,
+        verbose = FALSE,
+        D = D_pre
+      ), args))
+    })
+    if (verbose) message("Completed.")
+    return(res)
+  }
+
+
+  ###### IF IMG IS ONE IMAGE
+  ## Input Checks
   # Match method string
   method <- match.arg(method, choices = c("primal_dual", "split_bregman"))
   task <- match.arg(task, choices = c("denoising", "inpainting", "ROF_inpainting"))
@@ -84,3 +117,6 @@ tv_restore <- function(img, mask = NULL, lambda,
     res[!mask] <- NA
   return(res)
 }
+
+
+
