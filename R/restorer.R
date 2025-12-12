@@ -26,7 +26,8 @@ tv_restore <- function(img, mask = NULL, lambda,
 
 
   if (!is.matrix(img)) stop("`img` must be a 2D numeric matrix.")
-  nr <- nrow(img); nc <- ncol(img)
+  if (nrow(img) != ncol(img)) stop("`img` must be a square matrix.")
+  n <- nrow(img)
 
   # Check Mask
   if (task == "denoising") {
@@ -42,7 +43,7 @@ tv_restore <- function(img, mask = NULL, lambda,
       }
     }
   }
-  if (!all(dim(mask) == c(nr, nc))) {
+  if (!all(dim(mask) == c(n, n))) {
     stop("mask dimensions must match img.")
   }
 
@@ -52,7 +53,7 @@ tv_restore <- function(img, mask = NULL, lambda,
   }
 
   # Replace NAs in image with 0, vectorize inputs for efficiency
-  im_vec <- as.numeric(ifelse(is.na(img_clean), 0, img_clean))   # length n^2
+  im_vec <- as.numeric(ifelse(is.na(img), 0, img))   # length n^2
   mask_vec <- as.numeric(as.vector(mask))   # as.vector keeps column-major order
 
 
@@ -77,7 +78,9 @@ tv_restore <- function(img, mask = NULL, lambda,
                                   D = D_op, ...)
   }
   # Return as matrix, strictly capped between 0 and 1
-  res <- matrix(res_vec, nrow = nr, ncol = nc)   # column-major fill
+  res <- matrix(res_vec, nrow = n, ncol = n)
   res[res < 0] <- 0; res[res > 1] <- 1;
+  if (task == "denoising")
+    res[!mask] <- NA
   return(res)
 }
