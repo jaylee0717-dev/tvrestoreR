@@ -1,3 +1,20 @@
+#' Title
+#'
+#' @param im_vec
+#' @param mask_vec
+#' @param task
+#' @param lmda
+#' @param u0
+#' @param mu
+#' @param tol
+#' @param max_iter
+#' @param verbose
+#' @param D
+#'
+#' @returns
+#' @export
+#'
+#' @examples
 find_split_bregman <- function(im_vec, mask_vec, task,
                                lmda, u0, mu = 1.0,
                                tol = 1e-4, max_iter = 500, verbose = FALSE,
@@ -15,15 +32,18 @@ find_split_bregman <- function(im_vec, mask_vec, task,
   # Compute Laplacian (D^T D) once
   Laplacian <- crossprod(D)
 
-  # Build Linear System
-  Fidelity <- Diagonal(x = mask_vec + 1e-8) # Stability control
-  LHS <- Fidelity + mu * Laplacian
+  # Build Linear System according to task (with stability padding)
+  if (task == "inpainting") {
+    LHS <- mu * Laplacian + Diagonal(n=length(im_vec), x=1e-10)
+  } else { # Soft constraints (Denoising / ROF_inpainting)
+    LHS <- Diagonal(x = mask_vec) + mu * Laplacian
+  }
   solver_chol <- Cholesky(LHS)
 
   ## Initialization
   u <- as.numeric(u0)
-  d <- as.numeric(D %*% u)
-  b <- numeric(length(d))
+  d <- numeric(nrow(D))
+  b <- numeric(nrow(D))
 
 
   count <- 0L
@@ -37,6 +57,10 @@ find_split_bregman <- function(im_vec, mask_vec, task,
     RHS <- rhs_data + rhs_reg
     # Solve Au = b
     u <- as.numeric(solve(solver_chol, RHS))
+    if (task == "inpainting") {
+      # Reset known pixels to original values
+      u[mask_vec == 1] <- im_vec[mask_vec == 1]
+    }
 
     # update d
     # d = shrink(Du + b, lambda / mu)
@@ -46,13 +70,14 @@ find_split_bregman <- function(im_vec, mask_vec, task,
     # update b
     b <- b + (Du - d)
 
+    count <- count + 1L
+
     ## Check Convergence
     if (count > max_iter) break
 
     rel_change <- vecnorm2(u - u_old) / (vecnorm2(u) + 1e-10)
     if (rel_change < tol) break
 
-    count <- count + 1L
 
     ## Output Control
     if (verbose && count %% 50 == 0) {
