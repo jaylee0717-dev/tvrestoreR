@@ -2,7 +2,7 @@
 % Please edit documentation in R/restorer.R
 \name{tv_restore}
 \alias{tv_restore}
-\title{Title}
+\title{tv_restore}
 \usage{
 tv_restore(
   img,
@@ -11,17 +11,21 @@ tv_restore(
   method = "primal_dual",
   task = "ROF_inpainting",
   u0 = NULL,
-  tau,
-  sigma,
-  theta,
-  max_iter = 300,
+  max_iter = 10000,
   tol = 1e-04,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
-\item{theta}{}
+\item{u0}{Initialized image. Defaults to an entirely black image.}
+
+\item{max_iter}{Maximum iteration. Default 10000.}
+
+\item{tol}{Tolerance on the 2-norm difference of primal and dual variables. Default 1e-5.}
+
+\item{verbose}{Controls if detailed printouts on the looped variables will be provided. Default False.}
 }
 \description{
-Title
+tv_restore
 }
