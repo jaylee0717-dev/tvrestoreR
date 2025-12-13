@@ -11,20 +11,12 @@
 (TV) regularization.  
 It supports inpainting (filling in missing or masked pixels) and
 denoising (removing noise from observed pixels) through a single
-variational framework.  
-Using a primal-dual (Chambolle–Pock) solver, the package takes a
-user-provided image and mask, applies TV regularization with a tuning
-parameter (λ), and returns a restored image that respects the observed
-data while enforcing smoothness and preserving edges.
-
-## Work In Progress – What is Left
-
-So Far: functions for creating and plotting example images, working
-implementation of restore function.
-
-What is Left: Complete restore function, gridsearch function on
-hyperparameters function, add vignette, potentially add more solver
-methods for the restore function.
+variational framework, and ROF-inpainting (equivalent to inpainting and
+denoising concurrently). Using a primal-dual (Chambolle–Pock) solver,
+the package takes a user-provided image and mask, applies TV
+regularization with a tuning parameter (λ), and returns a restored image
+that respects the observed data while enforcing smoothness and
+preserving edges.
 
 ## Installation
 
@@ -36,4 +28,57 @@ You can install the development version of tvrestoreR from
 pak::pak("jaylee0717-dev/tvrestoreR")
 ```
 
+## Mathematical Formulation
+
+The package solves the following minimization
+problem:$$ \min_{u} \int_{\Omega} |\nabla u| + \frac{\lambda}{2} \int_{\Omega \cap D} (u - f)^2 dx $$
+
+Where:$u$ is the restored image. $\int |\nabla u|$ is the Total
+Variation term (enforces smoothness/sparsity of gradients). $f$ is the
+observed noisy image. $D$ is the domain of observed pixels (the mask).
+$\lambda$ is the regularization parameter.
+
+there are two implemented solver methods for the problem: primal-dual by
+Chambolle-Pock, and split bregman.
+
 ## Example
+
+The following example outlines how to generate synthetic data (including
+the base “ground-truth” image, corrupted image, and the mask), then run
+TV restoration, and then visualize.
+
+``` r
+library(tvrestoreR)
+
+## Generate Synthetic Data 
+# --------------------------
+# Creates a "wedge" pattern with gaussian noise with SD 0.1 and 40% missing pixels
+sim_data <- generate_example_images(
+  pattern = "wedge", 
+  noise_sigma = 0.1, 
+  missing_fraction = 0.1,
+  mask_type = "disk",
+  seed = 123
+)
+
+
+## Run TV Restoration
+# ---------------------
+result <- tv_restore(
+  img = sim_data$original,
+  mask = sim_data$mask, 
+  lambda = 1,
+  task = "ROF_inpainting"
+) 
+
+## Visualize
+# ------------
+# Red pixels indicate missing data (NA)
+plot_images(
+  imgs = list(sim_data$original, sim_data$corrupted, result),
+  titles = c("Ground Truth", "Corrupted Input", "TV Restored"),
+  na_color = "red"
+)
+```
+
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
