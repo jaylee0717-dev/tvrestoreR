@@ -14,7 +14,7 @@
 #'
 #' @export
 #'
-#' #' @returns A list with components:
+#' @returns A list with components:
 #’ \item{original}{The original (clean) ground-truth image matrix of size \code{size}.}
 #’ \item{corrupted}{The image after adding noise and applying the mask (with NAs for missing pixels).}
 #’ \item{mask}{Logical matrix of same size: \code{TRUE} means pixel is observed, \code{FALSE} means masked (missing).}
@@ -122,7 +122,7 @@ generate_example_images <- function(size = c(64, 64), pattern = "wedge",
 #' @param useRaster Logical. Whether to use raster graphics
 #' @param axes Logical. Whether to draw axes around each image
 #' @param main Character scalar. Overall main title for the combined grid
-#'
+#' @param na_color Character string. Sets which color "N/A" will be represented in.
 #' @export
 #'
 #' @examples
