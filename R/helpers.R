@@ -1,8 +1,14 @@
-#' compute_D
+#' Compute Finite Difference Operator (D)
 #'
-#' @param n
+#' @description
+#' Constructs the sparse discrete gradient operator matrix $D$,
+#' to be acted on a vectorized image $u$ (length $n^2$).
 #'
-#' @returns
+#' @param n Integer. The side length of the square image.
+#'
+#' @return A sparse matrix of class \code{dgCMatrix} with dimensions $2n^2 \times n^2$.
+#'   The top half contains horizontal differences ($D_x$), and the bottom half
+#'   contains vertical differences ($D_y$).
 #'
 #' @importFrom Matrix bandSparse kronecker Diagonal
 #'
@@ -20,26 +26,32 @@ compute_D <- function(n) {
   return(D)
 }
 
-#' Title
+#' Compute Identity Operator (F)
 #'
-#' @param n
+#' @description
+#' Creates a sparse diagonal identity matrix.
 #'
-#' @returns
+#' @param n Integer. The side length of the square image.
+#'
+#' @return A sparse diagonal matrix of dimensions $2n^2 \times 2n^2$.
 #'
 #' @keywords internal
 #' @noRd
-
 compute_F <- function(n) {
   size <- 2L * n * n
   return(Diagonal(size))
 }
 
-#' Title
+#' Isotropic Soft Thresholding (Shrinkage)
 #'
-#' @param q
-#' @param tau
+#' @description
+#' Applies generalized soft thresholding to the dual variables.
 #'
-#' @returns
+#' @param q Numeric vector of length $2n^2$. Represents the stacked dual variables $[q_x; q_y]$.
+#' @param tau Numeric scalar or vector. The threshold parameter.
+#'
+#' @return A numeric vector of the same length as \code{q}, containing the shrunk values.
+#'
 #' @keywords internal
 #' @noRd
 shrink <- function(q, tau) {

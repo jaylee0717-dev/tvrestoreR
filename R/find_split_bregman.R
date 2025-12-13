@@ -1,17 +1,24 @@
-#' find_split_bregman
+#' Split Bregman Solver for TV Restoration
 #'
-#' @param im_vec
-#' @param mask_vec
-#' @param task
-#' @param lmda
-#' @param u0
-#' @param mu
-#' @param tol
-#' @param max_iter
-#' @param verbose
-#' @param D
+#' @description
+#' Solves the Total Variation problem using the Split Bregman iteration technique.
 #'
-#' @returns
+#' @param im_vec Numeric vector. Vectorized input image.
+#' @param mask_vec Numeric vector. Vectorized mask (0/1).
+#' @param task Character. Task type. Note: \code{"inpainting"} enforces hard constraints via high penalty weights.
+#' @param lmda Numeric. Regularization parameter $\lambda$.
+#' @param u0 Numeric vector. Initial guess.
+#' @param mu Numeric. Penalty parameter for the split variable.
+#' @param tol Numeric. Convergence tolerance.
+#' @param max_iter Integer. Maximum iterations.
+#' @param verbose Logical. Print progress if TRUE.
+#' @param D Sparse matrix. The discrete gradient operator.
+#'
+#'
+#' @return A numeric vector representing the restored image.
+#'
+#' @import Matrix
+#' @keywords internal
 #' @noRd
 find_split_bregman <- function(im_vec, mask_vec, task,
                                lmda, u0, mu = 1.0,

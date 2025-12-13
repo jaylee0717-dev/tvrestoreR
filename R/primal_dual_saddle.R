@@ -1,15 +1,17 @@
-#' Title
+#' Proximal Operator for the Fidelity Term
 #'
-#' @param ubar
-#' @param g
-#' @param tau
-#' @param mask
-#' @param task_type
+#' @description
+#' Computes the proximal operator for the data fidelity term.
 #'
-#' @returns
+#' @param ubar Numeric vector. The variable to update.
+#' @param g Numeric vector. The observed input image.
+#' @param tau Numeric scalar. Step size parameter. Required for denoising/ROF tasks.
+#' @param mask Numeric vector. The observation mask (0/1).
+#' @param task_type Character. One of \code{"inpainting"}, \code{"denoising"}, or \code{"ROF_inpainting"}.
+#'
+#' @return A numeric vector of the same length as \code{ubar}.
+#' @keywords internal
 #' @noRd
-#'
-#' @examples
 prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoising", "ROF_inpainting")) {
   task_type <- match.arg(task_type)
   if (task_type == "inpainting") {
@@ -27,23 +29,28 @@ prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoisi
 }
 
 
-#' find_primaldual_saddle_point
+#' Primal-Dual Saddle Point Solver
 #'
-#' @param im_vec
-#' @param mask_vec
-#' @param task
-#' @param lmda
-#' @param u0
-#' @param tol
-#' @param max_iter
-#' @param verbose
-#' @param D
-#' @param Fmat
+#' @description
+#' Implements the Chambolle-Pock first-order primal-dual algorithm to solve the
+#' Total Variation saddle point problem.
 #'
-#' @returns
+#' @param im_vec Numeric vector of length $n^2$. Vectorized input image.
+#' @param mask_vec Numeric vector of length $n^2$. Vectorized mask (0/1).
+#' @param task Character. Task type: \code{"denoising"}, \code{"inpainting"}, or \code{"ROF_inpainting"}.
+#' @param lmda Numeric. Regularization parameter $\lambda$.
+#' @param u0 Numeric vector. Initial guess for the solution.
+#' @param tol Numeric. Convergence tolerance for the relative change in primal and dual variables.
+#' @param max_iter Integer. Maximum number of iterations.
+#' @param verbose Logical. If \code{TRUE}, prints convergence metrics every 1000 iterations.
+#' @param D Sparse matrix. The discrete gradient operator (stacked $D_x, D_y$).
+#' @param Fmat Sparse matrix. Operator linking the auxiliary variable (currently identity).
+#'
+#' @return A numeric vector of length $n^2$ representing the restored image.
+#'
+#' @import Matrix
 #' @keywords internal
 #' @noRd
-#' @import Matrix
 find_primaldual_saddle_point <- function(im_vec, mask_vec, task,
                               lmda, u0, tol,
                               D, Fmat,
@@ -62,8 +69,6 @@ find_primaldual_saddle_point <- function(im_vec, mask_vec, task,
 
   # --- Setup Matrices ---
   im_copy <- as.numeric(im_vec)
-  D <- compute_D(n) # returns stacked layout [Dx; Dy]
-  Fmat <- compute_F(n)
 
   # --- Initialization ---
   u <- as.numeric(u0)
