@@ -1,25 +1,28 @@
-#' generate_example_images
+#' Generate Synthetic Images for Restoration
 #'
-#' Generates an image with optional noise and missing‐pixel mask
+#' @description
+#' Creates synthetic test images with optional Gaussian noise and missing pixel masks.
 #'
-#' @param size Integer vector of length 2 giving number of rows and columns (default: c(64, 64)).
-#' @param pattern Character. Type of base image to generate. Options include \code{"gradient"}, \code{"checkerboard"}, \code{"disk"} (default: \code{"gradient"}).
-#' @param noise_sigma Numeric. Standard deviation of Gaussian noise to add to the image (default: 0.0, for no noise).
-#' @param missing_fraction Numeric between 0 and 1. Fraction of pixels to mask (set to NA) randomly (default: 0.0, for no missing pixels).
-#' @param mask_type Character. If \code{missing_fraction > 0}, type of mask to generate: \code{"random_pixels"} (default), \code{"random_blocks"}.
-#' @param seed seed Integer (optional). Random seed for reproducibility.
-#'
-#' @returns A list with components:
-#’ \item{original}{The original (clean) image matrix of size \code{size}.}
-#’ \item{corrupted}{The image after adding noise and applying the mask (with NAs for missing pixels).}
-#’ \item{mask}{Logical matrix of same size: \code{TRUE} means pixel is observed, \code{FALSE} means masked (missing).}
+#' @param size Integer vector of length 2. Dimensions (rows, cols).
+#' @param pattern Character String detailing what the base image should look.
+#' Options: \code{"gradient"}, \code{"checkerboard"}, \code{"disk"}, \code{"wedge"}, or \code{"wedge60"}.
+#' @param noise_sigma Numeric. Standard deviation of Gaussian noise to add.
+#' @param missing_fraction Numeric (0 to 1). Fraction of pixels to mask as \code{NA}.
+#' @param mask_type Character String, for strategy for masking. Options: \code{"random_pixels"},
+#'   \code{"random_blocks"}, or \code{"disk"}.
+#' @param seed Integer. Optional random seed for reproducibility.
 #'
 #' @export
+#'
+#' #' @returns A list with components:
+#’ \item{original}{The original (clean) ground-truth image matrix of size \code{size}.}
+#’ \item{corrupted}{The image after adding noise and applying the mask (with NAs for missing pixels).}
+#’ \item{mask}{Logical matrix of same size: \code{TRUE} means pixel is observed, \code{FALSE} means masked (missing).}
 #'
 #' @examples
 #' ex <- generate_example_images(missing_fraction = 0.4, noise_sigma = 0.2)
 #' image(ex$corrupted, main = "Example corrupted image", col=grey(seq(0,1,length.out = 256)))
-generate_example_images <- function(size = c(64, 64), pattern = "gradient",
+generate_example_images <- function(size = c(64, 64), pattern = "wedge",
                                    noise_sigma = 0.0, missing_fraction = 0.0,
                                    mask_type = "disk", seed = NULL){
   # Set seed
@@ -104,24 +107,29 @@ generate_example_images <- function(size = c(64, 64), pattern = "gradient",
 
 
 
-#' plot_images
-#' Plot one or more grayscale images in a grid with titles
+#' Grid Visualization of Image Lists
+#'
+#' @description
+#' Plots a list of image matrices in a grid layout. Automatically handles \code{NA} values
+#' by plotting them in a distinct color.
 #'
 #' @param imgs A list of image matrices (rows × cols) for grayscale images.
-#' @param titles Character vector of same length as \code{imgs}. Titles to display above each image. If \code{NULL}, no individual titles.
-#' @param cols Integer or \code{NULL}. Number of columns in the grid layout (by row-major order). If \code{NULL}, it uses \code{floor(sqrt(length(imgs)))} columns.
-#' @param palette Character vector. Colour ramp for grayscale (default: \code{grey(seq(0,1,length.out=256))}).
-#' @param useRaster Logical. Whether to use raster graphics (default: \code{TRUE}).
-#' @param axes Logical. Whether to draw axes around each image (default: \code{FALSE}).
-#' @param main Character scalar. Overall main title for the combined grid (default: \code{NULL}).
-#’
+#' @param titles Character vector of same length as \code{imgs}. Titles to display above each image.
+#' If \code{NULL}, no individual titles.
+#' @param cols Integer or \code{NULL}. Number of columns in the grid layout (by row-major order).
+#' If \code{NULL}, it uses \code{floor(sqrt(length(imgs)))} columns.
+#' @param palette Character vector. Color ramp for grayscale.
+#' @param useRaster Logical. Whether to use raster graphics
+#' @param axes Logical. Whether to draw axes around each image
+#' @param main Character scalar. Overall main title for the combined grid
 #'
 #' @export
 #'
 #' @examples
-#' a <- matrix(rnorm(100), nrow=10)
-#' b <- matrix(runif(160), nrow=10)
-#' plot_images(list(a, b), titles=c("Norm", "Unif"))
+#' a <- matrix(runif(100), 10, 10)
+#' b <- matrix(runif(100), 10, 10)
+#' b[1:5,1:5] <- NA
+#' plot_images(list(a, b), titles = c("Clean", "Missing Data"), na_color = "red")
 plot_images <- function(imgs, titles = NULL, cols = NULL,
                         palette = grey(seq(0,1,length.out = 256)),
                         na_color = "red", useRaster = TRUE, axes = FALSE, main = NULL) {
