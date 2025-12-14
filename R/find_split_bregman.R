@@ -17,7 +17,7 @@
 #'
 #' @return A numeric vector representing the restored image.
 #'
-#' @import Matrix
+#' @importFrom Matrix Diagonal Cholesky crossprod solve
 #' @keywords internal
 #' @noRd
 find_split_bregman <- function(im_vec, mask_vec, task,

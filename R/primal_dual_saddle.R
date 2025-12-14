@@ -48,7 +48,7 @@ prox <- function(ubar, g, tau = NULL, mask, task_type = c("inpainting", "denoisi
 #'
 #' @return A numeric vector of length $n^2$ representing the restored image.
 #'
-#' @import Matrix
+#' @importFrom Matrix Matrix sparseMatrix t rowSums colSums
 #' @keywords internal
 #' @noRd
 find_primaldual_saddle_point <- function(im_vec, mask_vec, task,
