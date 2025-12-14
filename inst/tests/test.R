@@ -1,48 +1,70 @@
-# Set up a greyscale palette
-pal <- grey(seq(0, 1, length.out = 256))
+devtools::load_all(".")
 
-# Im1: default grayscale
-im1 <- generate_example_images()
-par(mar = c(2,2,2,2))  # minimal margins
-image(t(im1$corrupted[nrow(im1$corrupted):1,]),
-      col = pal,
-      useRaster = TRUE,
-      main = "Corrupted Default Image")
-
-# Im2: add missing and noise
-im2 <- generate_example_images(size= c(128, 128), missing_fraction = 0., noise_sigma = 0.05)
-plot_images(list(im2$original, im2$corrupted), titles=c("Original", "Corrupt"))
+################################################################
 
 # Im3: disk with blocks
-im3 <- generate_example_images(pattern= "disk", mask_type = "random_blocks", missing_fraction = 0.1, noise_sigma = 0.1)
+im3 <- generate_example_images(size= c(128,128), pattern= "wedge", mask_type = "disk", missing_fraction = 0., noise_sigma = 0.1)
 plot_images(list(im3$original, im3$corrupted), titles=c("Original", "Corrupt"))
 
-# Im4: checkerboard with random pixels
-im4 <- generate_example_images(pattern= "checkerboard", mask_type = "random_pixels", missing_fraction = 0.2, noise_sigma = 0.2)
+re3_2 <- tv_restore(im3$corrupted, mask=im3$mask, task="inpainting",
+                    lambda = 1, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+plot_images(list(re3_2, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
 
+
+re3 <- tv_restore(im3$corrupted, mask=im3$mask, task="ROF_inpainting",
+                  lambda = 1, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+plot_images(list(re3, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
+
+
+re3_3 <- tv_restore(im3$corrupted, mask=im3$mask, task="denoising",
+                    lambda = 0.001, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+plot_images(list(re3_3, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
+
+
+# Im4: find lambda tests
+im4 <- generate_example_images(size= c(128,128), pattern= "wedge", mask_type = "disk", missing_fraction = 0., noise_sigma = 0.1)
 plot_images(list(im4$original, im4$corrupted), titles=c("Original", "Corrupt"))
 
+out <- find_lambda(im4$corrupted, im4$mask, task="denoising", lambda_grid = 10^seq(-2.5, 1, length.out = 3),verbose=TRUE, ground_truth = 0.1)
+plot_images(list(out$restored, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
 
-#
-im5 <- generate_example_images(pattern= "disk", mask_type = "disk", missing_fraction = 0.1, noise_sigma = 0.1)
-plot_images(list(im5$original, im5$corrupted), titles=c("Original", "Corrupt"))
+##############################################################################
+# Test Split Bregman with im3
+im3 <- generate_example_images(size= c(128,128), pattern= "wedge", mask_type = "disk", missing_fraction = 0.15, noise_sigma = 0.1)
+plot_images(list(im3$original, im3$corrupted), titles=c("Original", "Corrupt"))
 
-
-# Re2: Im2 restored
-
-re2 <- tv_restore(im2$corrupted, mask=im2$mask, lambda = 1e-12, tau = 1e6, sigma = 1e-1, theta = 1e0)
-plot_images(list(re2$restored, im2$corrupted, im2$corrupted-re2$restored), titles = c("Restored", "Corrupted", "Diff"))
-  diff <- im2$corrupted-re2$restored
-max(diff)
-max(re2$restored)
-a <- re2$restored
-image(t(re2$restored[nrow(re2$restored):1,]),
-      col = pal,
-      useRaster = TRUE,
-      main = "Restored Image")
-b <- im2$corrupted
+re3_3 <- tv_restore(im3$corrupted, mask=im3$mask, task="denoising", method="split_bregman",
+                    lambda = 1, max_iter = 20000, tol = 1e-04, verbose = TRUE)
+plot_images(list(re3_3, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
 
 
-re3 <- tv_restore(im3$corrupted, mask=im3$mask, lambda = 1e-9, tau = 0.125, sigma = 0.125, theta = 1)
-plot_images(list(re3$restored, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
-c <- im3$corrupted
+re3_2 <- tv_restore(im3$corrupted, mask=im3$mask, task="inpainting", method = "split_bregman",
+                    lambda = 1, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+plot_images(list(re3_2, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
+
+
+re3 <- tv_restore(im3$corrupted, mask=im3$mask, task="ROF_inpainting",method = "split_bregman",
+                  lambda = 10, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+plot_images(list(re3, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
+
+
+
+#############################
+# Test Image List input
+im3 <- generate_example_images(size= c(128,128), pattern= "wedge", mask_type = "disk", missing_fraction = 0.1, noise_sigma = 0.1)
+im4 <- generate_example_images(size= c(128,128), pattern= "gradient", mask_type = "disk", missing_fraction = 0.15, noise_sigma = 0.2)
+
+a <- list(im3$corrupted,im4$corrupted)
+re_list <- tv_restore(a, mask=im3$mask, task="ROF_inpainting", method = "primal_dual",
+                               lambda = 1, max_iter = 20000, tol = 5e-04, verbose = TRUE)
+
+plot_images(list(re_list[[1]], im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))
+plot_images(list(re_list[[2]], im4$original, im4$corrupted), titles = c("Restored", "Original", "Corrupted"))
+
+
+
+###################################
+# Test Lambda finding
+best <- find_lambda(im3$corrupted, mask = im3$mask, lambda_grid = 10^seq(0, 1, length.out=3),
+            task="inpainting", method = "split_bregman", ground_truth = 0.1)
+plot_images(list(best$restored, im3$original, im3$corrupted), titles = c("Restored", "Original", "Corrupted"))

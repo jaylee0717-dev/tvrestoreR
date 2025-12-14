@@ -2,11 +2,11 @@
 % Please edit documentation in R/Simulations.R
 \name{generate_example_images}
 \alias{generate_example_images}
-\title{generate_example_images}
+\title{Generate Synthetic Images for Restoration}
 \usage{
 generate_example_images(
   size = c(64, 64),
-  pattern = "gradient",
+  pattern = "wedge",
   noise_sigma = 0,
   missing_fraction = 0,
   mask_type = "disk",
@@ -14,23 +14,25 @@ generate_example_images(
 )
 }
 \arguments{
-\item{size}{Integer vector of length 2 giving number of rows and columns (default: c(64, 64)).}
+\item{size}{Integer vector of length 2. Dimensions (rows, cols).}
 
-\item{pattern}{Character. Type of base image to generate. Options include \code{"gradient"}, \code{"checkerboard"}, \code{"disk"} (default: \code{"gradient"}).}
+\item{pattern}{Character String detailing what the base image should look.
+Options: \code{"gradient"}, \code{"checkerboard"}, \code{"disk"}, \code{"wedge"}, or \code{"wedge60"}.}
 
-\item{noise_sigma}{Numeric. Standard deviation of Gaussian noise to add to the image (default: 0.0, for no noise).}
+\item{noise_sigma}{Numeric. Standard deviation of Gaussian noise to add.}
 
-\item{missing_fraction}{Numeric between 0 and 1. Fraction of pixels to mask (set to NA) randomly (default: 0.0, for no missing pixels).}
+\item{missing_fraction}{Numeric (0 to 1). Fraction of pixels to mask as \code{NA}.}
 
-\item{mask_type}{Character. If \code{missing_fraction > 0}, type of mask to generate: \code{"random_pixels"} (default), \code{"random_blocks"}.}
+\item{mask_type}{Character String, for strategy for masking. Options: \code{"random_pixels"},
+\code{"random_blocks"}, or \code{"disk"}.}
 
-\item{seed}{seed Integer (optional). Random seed for reproducibility.}
+\item{seed}{Integer. Optional random seed for reproducibility.}
 }
 \value{
 A list with components:
 }
 \description{
-Generates an image with optional noise and missing‐pixel mask
+Creates synthetic test images with optional Gaussian noise and missing pixel masks.
 }
 \examples{
 ex <- generate_example_images(missing_fraction = 0.4, noise_sigma = 0.2)

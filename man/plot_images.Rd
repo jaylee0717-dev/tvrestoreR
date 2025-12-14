@@ -2,8 +2,7 @@
 % Please edit documentation in R/Simulations.R
 \name{plot_images}
 \alias{plot_images}
-\title{plot_images
-Plot one or more grayscale images in a grid with titles}
+\title{Grid Visualization of Image Lists}
 \usage{
 plot_images(
   imgs,
@@ -19,24 +18,29 @@ plot_images(
 \arguments{
 \item{imgs}{A list of image matrices (rows × cols) for grayscale images.}
 
-\item{titles}{Character vector of same length as \code{imgs}. Titles to display above each image. If \code{NULL}, no individual titles.}
+\item{titles}{Character vector of same length as \code{imgs}. Titles to display above each image.
+If \code{NULL}, no individual titles.}
 
-\item{cols}{Integer or \code{NULL}. Number of columns in the grid layout (by row-major order). If \code{NULL}, it uses \code{floor(sqrt(length(imgs)))} columns.}
+\item{cols}{Integer or \code{NULL}. Number of columns in the grid layout (by row-major order).
+If \code{NULL}, it uses \code{floor(sqrt(length(imgs)))} columns.}
 
-\item{palette}{Character vector. Colour ramp for grayscale (default: \code{grey(seq(0,1,length.out=256))}).}
+\item{palette}{Character vector. Color ramp for grayscale.}
 
-\item{useRaster}{Logical. Whether to use raster graphics (default: \code{TRUE}).}
+\item{na_color}{Character string. Sets which color "N/A" will be represented in.}
 
-\item{axes}{Logical. Whether to draw axes around each image (default: \code{FALSE}).}
+\item{useRaster}{Logical. Whether to use raster graphics}
 
-\item{main}{Character scalar. Overall main title for the combined grid (default: \code{NULL}).}
+\item{axes}{Logical. Whether to draw axes around each image}
+
+\item{main}{Character scalar. Overall main title for the combined grid}
 }
 \description{
-plot_images
-Plot one or more grayscale images in a grid with titles
+Plots a list of image matrices in a grid layout. Automatically handles \code{NA} values
+by plotting them in a distinct color.
 }
 \examples{
-a <- matrix(rnorm(100), nrow=10)
-b <- matrix(runif(160), nrow=10)
-plot_images(list(a, b), titles=c("Norm", "Unif"))
+a <- matrix(runif(100), 10, 10)
+b <- matrix(runif(100), 10, 10)
+b[1:5,1:5] <- NA
+plot_images(list(a, b), titles = c("Clean", "Missing Data"), na_color = "red")
 }

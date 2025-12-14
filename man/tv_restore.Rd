@@ -2,7 +2,7 @@
 % Please edit documentation in R/restorer.R
 \name{tv_restore}
 \alias{tv_restore}
-\title{tv_restore}
+\title{Total Variation Image Restoration (Denoising and Inpainting)}
 \usage{
 tv_restore(
   img,
@@ -14,18 +14,74 @@ tv_restore(
   max_iter = 10000,
   tol = 1e-04,
   verbose = FALSE,
+  D = NULL,
+  Fmat = NULL,
   ...
 )
 }
 \arguments{
-\item{u0}{Initialized image. Defaults to an entirely black image.}
+\item{img}{A numeric matrix or a list of matrices to be denoised or inpainted.
+The matrix must be square, 0 and 1 (grayscale).}
 
-\item{max_iter}{Maximum iteration. Default 10000.}
+\item{mask}{A logical or numeric matrix of the same dimensions as \code{img}, where
+\code{1} (or \code{TRUE}) indicates an observed pixel and \code{0} (or \code{FALSE})
+indicates a missing pixel to be inpainted.}
 
-\item{tol}{Tolerance on the 2-norm difference of primal and dual variables. Default 1e-5.}
+\item{lambda}{Numeric scalar. The regularization parameter \eqn{\lambda}.}
 
-\item{verbose}{Controls if detailed printouts on the looped variables will be provided. Default False.}
+\item{method}{Character string specifying the optimization solver.
+Options are \code{"primal_dual"} (Chambolle-Pock) or \code{"split_bregman"}.}
+
+\item{task}{Character string specifying the restoration task.
+\itemize{
+\item \code{"denoising"}: Standard TV denoising (assumes no missing pixels).
+\item \code{"inpainting"}: Reconstructs missing pixels defined by \code{mask}.
+\item \code{"ROF_inpainting"}: A combination of denoising and inpainting.
+}}
+
+\item{u0}{Numeric vector or matrix. Initial guess for the restored image.
+Defaults to the input image (with missing values filled with 0.5).}
+
+\item{max_iter}{Integer, maximum number of iterations for the solver.}
+
+\item{tol}{Numeric. Tolerance on the 2-norm difference of primal and dual variables.}
+
+\item{verbose}{Logical. Controls if detailed printouts on the looped variables will be provided.}
+
+\item{D}{Pre-computed Finite Difference operator matrix. (Optional).}
+
+\item{Fmat}{Pre-computed Fourier matrix for Primal-Dual Solver. (Optional).}
+
+\item{...}{Additional arguments passed to the internal solver functions.}
+}
+\value{
+A numeric matrix (or list of matrices) of the same dimensions as \code{img},
+containing the restored image(s). Values are strictly clamped between 0 and 1.
 }
 \description{
-tv_restore
+Total Variation Image Restoration (Denoising and Inpainting)
+}
+\examples{
+\dontrun{
+sim <- generate_example_images(
+  size = c(128, 128),
+  pattern = "disk",
+  noise_sigma = 0.1,
+  missing_fraction = 0.5,
+  mask_type = "random_blocks"
+)
+restored_img <- tv_restore(
+  img = sim$corrupted,
+  mask = sim$mask,
+  lambda = 10,
+  method = "primal_dual",
+  task = "ROF_inpainting",
+  verbose = TRUE
+)
+plot_images(
+  imgs = list(sim$original, sim$corrupted, restored_img),
+  titles = c("Truth", "Corrupted", "Restored"),
+  cols = 3
+)
+}
 }

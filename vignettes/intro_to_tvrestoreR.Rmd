@@ -16,4 +16,212 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Introduction 
+The tvrestoreR package implements Total Variation (TV) regularization. This vignette demonstrates three core capabilities: Denoising, Inpainting, and ROF-inpainting (performs both denoising and inpainting at the same time). 
+
+```{r}
+library(tvrestoreR)
+```
+
+## 1. Image Denoising
+Denoising attempts to remove Gaussian noise while preserving sharp edges. We will use the generate_example_images() helper to create a "wedge" pattern with noise but no missing pixels.
+
+```{r}
+# Generate data: Noise only, no missing pixels
+data_denoise <- generate_example_images(
+  pattern = "gradient", 
+  noise_sigma = 0.2, 
+  missing_fraction = 0.0,
+  seed = 42
+)
+
+# Run Restoration
+denoised <- tv_restore(
+  img = data_denoise$corrupted, 
+  mask = data_denoise$mask, 
+  lambda = 1
+)
+
+# Visualize
+plot_images(
+  list(data_denoise$original, data_denoise$corrupted, denoised),
+  titles = c("Truth", "Noisy", "Restored")
+)
+```
+
+## 2. Image Inpainting
+Inpainting recovers missing pixels. We will simulate damage by masking out a large "disk" in the center of the image.
+```{r}
+# Generate data: Wedge pattern with a missing hole
+data_inpaint <- generate_example_images(
+  pattern = "wedge", 
+  noise_sigma = 0.1,        
+  missing_fraction = 0.3,    
+  mask_type = "disk",
+  seed = 42
+)
+
+# Run Restoration
+inpainted <- tv_restore(
+  img = data_inpaint$corrupted, 
+  mask = data_inpaint$mask, 
+  lambda = 5,
+  task = "inpainting"
+)
+
+# Visualize
+# The red area in the middle represents the missing data
+plot_images(
+  list(data_inpaint$original, data_inpaint$corrupted, inpainted),
+  titles = c("Truth", "Masked Input", "Inpainted"),
+  na_color = "red"
+)
+```
+
+
+## 3. ROF-inpainting
+ROF-inpainting performs both denoising and inpainting. To demonstrate its denoising capability, we use the same image as in part 2. Typically, the optimal lambda is less for ROF-inpainting than the other tasks. 
+```{r}
+# Run Restoration
+ROF_inpainted <- tv_restore(
+  img = data_inpaint$corrupted, 
+  mask = data_inpaint$mask, 
+  task = "ROF_inpainting",
+  lambda = 1
+)
+
+# Visualize
+# The red area in the middle represents the missing data
+plot_images(
+  list(data_inpaint$original, data_inpaint$corrupted, ROF_inpainted),
+  titles = c("Truth", "Masked Input", "ROF-Inpainted"),
+  na_color = "red"
+)
+```
+
+## 4. The Effect of Lambda
+The regularization parameter $\lambda$ controls the trade-off between the data fidelity (trusting the input) and the regularization term (smoothness).
+High $\lambda$: Strong regularization. The result is very smooth.
+Low $\lambda$: Weak regularization. The result stays very close to the noisy input.
+
+```{r}
+# Run denoising example with diff lambdas
+res_smooth <- tv_restore(data_denoise$corrupted, data_denoise$mask, lambda = 0.01)
+res_noisy  <- tv_restore(data_denoise$corrupted, data_denoise$mask, lambda = 10)
+
+plot_images(
+  list(res_smooth, res_noisy),
+  titles = c("Lambda = 0.01 (Under-smoothed)", "Lambda = 10 (Over-smoothed)"),
+  cols = 2
+)
+```
+
+## 3. Finding the Optimal Lambda
+The regularization parameter $\lambda$ controls the trade-off between smoothness and data fidelity. The find_lambda function automates the gridsearch for the best $\lambda$ by minimizing the Mean Squared Error (MSE) against a known ground truth (or a reference image).
+
+```{r}
+# Use the noisy wedge data from Section 2
+# Define a grid of lambdas to test
+l_grid <- c(0.01, 0.1, 0.5, 1, 5, 10, 50)
+
+tuning_results <- find_lambda(
+  img = data_inpaint$corrupted,
+  mask = data_inpaint$mask,
+  ground_truth = data_inpaint$original,
+  lambda_grid = l_grid,
+  task = "ROF_inpainting",
+  method = "primal_dual",
+  verbose = FALSE
+)
+
+# Plot the Error Curve 
+plot(tuning_results$lambda_grid, tuning_results$errors, type='b', 
+     col="blue", pch=19, xlab="Lambda", ylab="MSE", main="Parameter Tuning")
+grid()
+points(tuning_results$best_lambda, min(tuning_results$errors), col="red", pch=19, cex=1.5)
+text(tuning_results$best_lambda, min(tuning_results$errors), 
+     labels=paste("Best:", tuning_results$best_lambda), pos=3, col="red")
+```
+
+## 5. Batch Processing (List of Images)
+tv_restore can handle a list of matrices, automatically pre-computing the heavy operators ($D$ and $F$) only once to save time. This is ideal for processing video frames or medical slices.
+```{r}
+# Create a list of 3 identical noisy frames for demonstration
+data_denoise1 <- generate_example_images(
+  pattern = "gradient", 
+  noise_sigma = 0.2, 
+  missing_fraction = 0.0,
+  seed = 42
+)
+data_denoise2 <- generate_example_images(
+  pattern = "wedge", 
+  noise_sigma = 0.2, 
+  missing_fraction = 0.0,
+  seed = 42
+)
+data_denoise3 <- generate_example_images(
+  pattern = "wedge60", 
+  noise_sigma = 0.2, 
+  missing_fraction = 0.0,
+  seed = 42
+)
+batch_input <- list(
+  data_denoise1$corrupted, 
+  data_denoise2$corrupted, 
+  data_denoise3$corrupted
+)
+
+# Run batch restoration
+# The function detects the list and iterates efficiently
+batch_output <- tv_restore(
+  img = batch_input,
+  mask = data_denoise$mask,
+  lambda = 1,
+  task = "denoising",
+  verbose = FALSE 
+)
+
+# Check results
+class(batch_output) # Should be "list"
+length(batch_output) # Should be 3
+```
+
+## 6. Alternative Solver: Split-Bregman
+By default, tv_restore uses the Primal-Dual (Chambolle-Pock) algorithm. However, you can also use the Split-Bregman method.
+
+Primal-Dual: Often faster for simple TV problems, very robust.
+
+Split-Bregman: Can be more accurate for specific types of constraints or harder problems.
+
+
+```{r}
+# Compare the two solvers on the inpainting task
+res_pd <- tv_restore(
+  img = data_inpaint$corrupted, 
+  mask = data_inpaint$mask, 
+  lambda = 10, 
+  method = "primal_dual",
+  task = "inpainting",
+  verbose = FALSE
+)
+
+res_sb <- tv_restore(
+  img = data_inpaint$corrupted, 
+  mask = data_inpaint$mask, 
+  lambda = 10, 
+  method = "split_bregman",
+  task = "inpainting",
+  verbose = FALSE
+)
+
+# Visualize the difference
+# We plot the absolute difference between the two solutions
+diff_img <- abs(res_pd - res_sb)
+
+plot_images(
+  list(res_pd, res_sb, diff_img),
+  titles = c("Primal-Dual", "Split-Bregman", "Difference"),
+  cols = 3
+)
+```
 
