@@ -123,6 +123,9 @@ generate_example_images <- function(size = c(64, 64), pattern = "wedge",
 #' @param axes Logical. Whether to draw axes around each image
 #' @param main Character scalar. Overall main title for the combined grid
 #' @param na_color Character string. Sets which color "N/A" will be represented in.
+#'
+#' @importFrom grDevices grey
+#' @importFrom graphics par title mtext image
 #' @export
 #'
 #' @examples

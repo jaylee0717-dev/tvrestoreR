@@ -47,7 +47,7 @@ compute_F <- function(n) {
 #' @description
 #' Applies generalized soft thresholding to the dual variables.
 #'
-#' @param q Numeric vector of length $2n^2$. Represents the stacked dual variables $[q_x; q_y]$.
+#' @param q Numeric vector of length $2n^2$. Represents the stacked dual variables q_x; q_y.
 #' @param tau Numeric scalar or vector. The threshold parameter.
 #'
 #' @return A numeric vector of the same length as \code{q}, containing the shrunk values.

@@ -25,6 +25,8 @@
 #'
 #' @returns A numeric matrix (or list of matrices) of the same dimensions as \code{img},
 #'   containing the restored image(s). Values are strictly clamped between 0 and 1.
+#'
+#' @importFrom stats rnorm
 #' @export
 #'
 #' @examples
