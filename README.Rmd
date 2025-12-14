@@ -33,7 +33,7 @@ pak::pak("jaylee0717-dev/tvrestoreR")
 ```
 
 ## Mathematical Formulation
-The package solves the following minimization problem:$$ \min_{u} \int_{\Omega} |\nabla u| + \frac{\lambda}{2} \int_{\Omega \cap D} (u - f)^2 dx $$
+The package solves the following minimization problem:$$ \min_{u} \frac{\lambda}{2}\int_{\Omega} |\nabla u| +  \int_{\Omega \cap D} (u - f)^2 dx $$
 
 Where:$u$ is the restored image.
 $\int |\nabla u|$ is the Total Variation term (enforces smoothness/sparsity of gradients).
@@ -80,5 +80,15 @@ plot_images(
 )
 ```
 
+## References
 
+### Theory (The Model)
+* Rudin, L. I., Osher, S., & Fatemi, E. (1992). Nonlinear total variation based noise removal algorithms. *Physica D: Nonlinear Phenomena*, 60(1-4), 259-268.
+
+### Algorithms (The Solvers)
+* **Primal-Dual** (`method = "primal_dual"`):
+    Chambolle, A., & Pock, T. (2011). A first-order primal-dual algorithm for convex problems with applications to imaging. *Journal of Mathematical Imaging and Vision*, 40(1), 120-145.
+
+* **Split-Bregman** (`method = "split_bregman"`):
+    Goldstein, T., & Osher, S. (2009). The split Bregman method for L1-regularized problems. *SIAM Journal on Imaging Sciences*, 2(2), 323-343.
 
